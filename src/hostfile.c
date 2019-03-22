@@ -148,11 +148,13 @@ struct host_file* open_host_file(enum host_file_mode mode, const char* dir,
 
     p = hf->filename;
     if (dl > 0 && !filename_is_absolute(filename)) {
-        p = mempcpy(p, dir, dl);
+        memcpy(p, dir, dl);
+        p += dl;
         if (!is_path_separator(p[-1]))
             *p++ = '/';
     }
-    p = mempcpy(p, filename, fl + 1);
+    memcpy(p, filename, fl + 1);
+    p += (fl + 1);
     hf->namelen = p - hf->filename;
 
     if (mode_type(mode) == HF_DIRECTORY) {

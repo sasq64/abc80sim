@@ -83,17 +83,6 @@ typedef enum bool
 #endif
 
 /*
- * mempcpy() replacement
- */
-#ifndef HAVE_MEMPCPY
-static inline void* mempcpy(void* dest, const void* src, size_t n)
-{
-    memcpy(dest, src, n);
-    return (char*)dest + n;
-}
-#endif
-
-/*
  * asprintf()
  */
 #ifndef HAVE_ASPRINTF

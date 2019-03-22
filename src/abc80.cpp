@@ -1,3 +1,4 @@
+extern "C" {
 #include "compiler.h"
 
 #include "abcio.h"
@@ -26,7 +27,7 @@ static const char* tracefile = NULL;
 static const char* memfile = NULL;
 static const char* console_filename = NULL;
 
-enum tracing traceflags;
+int traceflags;
 FILE* tracef;
 
 int events_in_queue = 1;
@@ -34,12 +35,13 @@ volatile int event_pending = 1;
 
 /* This reflects the screen width at system boot; e.g. ABC802 jumper setting */
 bool startup_width40 = false;
+}
 
 /*
  * Read a two digit hex number from a string
  * and return its numeric value.
  */
-static char* hexstring = "0123456789ABCDEF";
+static const char* hexstring = "0123456789ABCDEF";
 static uint8_t gethex(char* p)
 {
     return (uint8_t)(((strchr(hexstring, *p) - hexstring) << 4) +
@@ -60,7 +62,8 @@ static void load_sysfile(FILE* sysfile)
 
     while (!feof(sysfile)) {
         memory = ram;
-        fgets(line, 128, sysfile);
+        if(fgets(line, 128, sysfile) == nullptr)
+            break;
         if (line[0] != ':') {
             fprintf(stderr, "Invalid Intel-hex file.\n");
             exit(1);
@@ -89,19 +92,19 @@ static void load_sysfile(FILE* sysfile)
  * Print usage message
  */
 
-static no_return usage(void)
+[[noreturn]] static void usage(void)
 {
     fprintf(stderr, "Type \"%s --help\" for help\n", program_name);
     exit(1);
 }
 
-static no_return show_version(void)
+[[noreturn]] static void show_version(void)
 {
     printf("abc80sim %s\n", version_string);
     exit(0);
 }
 
-static no_return help(void)
+[[noreturn]] static void help(void)
 {
     // clang-format off
     printf("Usage: %s [options] [ihex_files...]\n"

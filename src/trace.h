@@ -16,7 +16,7 @@ enum tracing
     TRACE_ALL = 0x1f
 };
 
-extern enum tracing traceflags;
+extern int traceflags;
 
 static inline bool tracing(enum tracing flags)
 {

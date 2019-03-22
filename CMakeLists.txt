@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.5)
 project(abc80sim)
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(SDL REQUIRED)
 
@@ -13,11 +15,34 @@ endif()
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-
-set(FLAGS -U__STRICT_ANSI__ -I/usr/local/include/SDL -D_GNU_SOURCE=1 -D_THREAD_SAFE -Werror=attributes -W -Wall -pedantic -Werror=unknown-warning-option -Werror=implicit -Werror=missing-braces -Werror=return-type -Werror=trigraphs -Werror=pointer-arith -Werror=strict-prototypes -Werror=missing-prototypes -Werror=missing-declarations -Werror=comment -Werror=vla -DHAVE_CONFIG_H -I. -g -O2 -fwrapv -O3 -fno-common -fvisibility=hidden)
+set(FLAGS
+    -U__STRICT_ANSI__
+    -D_GNU_SOURCE=1
+    -D_THREAD_SAFE
+    -Werror=attributes
+    -W
+    -Wall
+    -pedantic
+    # -Werror=unknown-warning-option
+    # -Werror=implicit
+    # -Werror=missing-braces
+    # -Werror=return-type
+    # -Werror=trigraphs
+    # -Werror=pointer-arith
+    # -Werror=strict-prototypes
+    # -Werror=missing-prototypes
+    # -Werror=missing-declarations
+    # -Werror=comment
+    # -Werror=vla
+    -DHAVE_CONFIG_H
+    -fwrapv
+    -O3
+    -g
+    -fno-common
+    -fvisibility=hidden)
 
 set(SOURCES
-    src/abc80.c
+    src/abc80.cpp
     src/abcfile.c
     src/abcfont.c
     src/abcio.c
@@ -44,10 +69,10 @@ set(SOURCES
     src/roms/abc80bas40n.c
     src/roms/abc80bas40o.c
     src/roms/abc80bas80n.c
-    src/roms/abc80bas80o.c
-)
+    src/roms/abc80bas80o.c)
 
 add_executable(emu ${SOURCES})
 target_link_libraries(emu PUBLIC png z ${SDL_LIBRARY})
+target_include_directories(emu PRIVATE ${SDL_INCLUDE_DIR})
 target_compile_options(emu PRIVATE ${FLAGS})
 
