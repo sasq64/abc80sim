@@ -8,8 +8,14 @@ extern void io_init(void);
 
 enum model
 {
-    MODEL_ABC80,
-    MODEL_ABC802
+    MODEL_ABC80 = 0,
+    MODEL_ABC802 = 1,
+};
+
+enum model_extra
+{
+    MODEL_ABC80_M40 = 2,
+    MODEL_ABC802_M40 = 3,
 };
 
 extern enum model model;

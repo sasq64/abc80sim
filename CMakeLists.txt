@@ -58,7 +58,7 @@ set(SOURCES
     src/print.c
     src/rtc.c
     src/screenshot.c
-    src/sdlscrn.c
+    src/sdlscrn.cpp
     src/simprint.c
     src/trace.c
     src/z80.c

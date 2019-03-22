@@ -4,6 +4,9 @@
  * ABC80/802 screen emulation (40x24/80x24)
  */
 
+extern "C"
+{
+
 #include "abcio.h"
 #include "clock.h"
 #include "nstime.h"
@@ -11,6 +14,7 @@
 #include "screenshot.h"
 #include "trace.h"
 #include "z80.h"
+}
 #include <inttypes.h>
 #include <stdarg.h>
 #include <stdlib.h>
@@ -128,6 +132,30 @@ static inline struct xy addr_to_xy(const uint8_t* p)
 /*
  * Compute the screen offset for a specific x,y coordinates
  */
+template <int MODEL> static inline unsigned int screenoffs(uint8_t y, uint8_t x)
+{
+    size_t offs = -1;
+
+    switch (MODEL) {
+    case MODEL_ABC80_M40:
+        offs = 1024 + (((y >> 3) * 5) << 3) + ((y & 7) << 7) + x;
+        break;
+    case MODEL_ABC80:
+        offs = (((y >> 3) * 5) << 4) + ((y & 7) << 8) + x;
+        break;
+
+    case MODEL_ABC802:
+        offs = (y * 80) + x;
+        break;
+
+    case MODEL_ABC802_M40:
+        offs = (y * 80) + (x << 1);
+        break;
+    }
+
+    return offs;
+}
+
 static inline unsigned int screenoffs(uint8_t y, uint8_t x, bool m40)
 {
     size_t offs = -1;
@@ -148,12 +176,14 @@ static inline unsigned int screenoffs(uint8_t y, uint8_t x, bool m40)
     return offs;
 }
 
+
 /*
  * Return a specific character
  */
-static inline uint8_t screendata(uint8_t y, uint8_t x)
+template <int MODEL> static inline uint8_t screendata(uint8_t y, uint8_t x)
 {
-    return vdu.vram[(screenoffs(y, x, vdu.mode40) + vdu.startaddr) & VRAM_MASK];
+    return vdu.vram[(screenoffs<MODEL>(y, x) + vdu.startaddr) &
+                    VRAM_MASK];
 }
 
 /*
@@ -181,6 +211,7 @@ static void unlock_screen(struct surface* s)
  * yet...
  */
 
+template <int MODEL>
 static void put_screen(struct surface* s, unsigned int tx, unsigned int ty,
                        bool blink)
 {
@@ -203,14 +234,14 @@ static void put_screen(struct surface* s, unsigned int tx, unsigned int ty,
 
     gmode = 0;
     for (gx = 0; gx < tx; gx++) {
-        cc = screendata(ty, gx);
+        cc = screendata<MODEL>(ty, gx);
         if ((cc & 0x68) == 0) {
             gmode = (cc & 0x10) << 3;
             fg = (cc & 0x07);
         }
     }
 
-    voffs = screenoffs(ty, tx, vdu.mode40) + vdu.startaddr;
+    voffs = screenoffs<MODEL>(ty, tx) + vdu.startaddr;
     cc = vdu.vram[voffs & VRAM_MASK];
     fontp = abc_font[(cc & 0x7f) + gmode];
     invmask = (blink || model != MODEL_ABC80) ? 0x80 : 0;
@@ -279,10 +310,27 @@ static void refresh_screen(struct surface* s, bool force_blink)
 
     lock_screen(s);
 
-    for (y = 0; y < TS_HEIGHT; y++)
-        for (x = 0; x < width; x++)
-            put_screen(s, x, y, blink);
-
+    if (model == MODEL_ABC80) {
+        if (vdu.mode40) {
+            for (y = 0; y < TS_HEIGHT; y++)
+                for (x = 0; x < width; x++)
+                    put_screen<MODEL_ABC80_M40>(s, x, y, blink);
+        } else {
+            for (y = 0; y < TS_HEIGHT; y++)
+                for (x = 0; x < width; x++)
+                    put_screen<MODEL_ABC80>(s, x, y, blink);
+        }
+    } else if (model == MODEL_ABC802) {
+        if (vdu.mode40) {
+            for (y = 0; y < TS_HEIGHT; y++)
+                for (x = 0; x < width; x++)
+                    put_screen<MODEL_ABC802_M40>(s, x, y, blink);
+        } else {
+            for (y = 0; y < TS_HEIGHT; y++)
+                for (x = 0; x < width; x++)
+                    put_screen<MODEL_ABC802>(s, x, y, blink);
+        }
+    }
     unlock_screen(s);
     update_screen(s);
 }
@@ -430,7 +478,8 @@ void event_loop(void)
         KSH_SHIFT = 1,
         KSH_CTRL = 2,
         KSH_ALT = 4
-    } kshift;
+    };
+    int kshift;
 
     while (SDL_WaitEvent(&event)) {
         switch (event.type) {
