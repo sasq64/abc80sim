@@ -19,7 +19,7 @@ the "abcdir" subdirectory; the "abcdisk" subdirectory can contain disk
 images in UFD-DOS format.
 
 
-	---------------------
+---------------------
 
 
 This directory contains the source for an ABC80 emulator under X-windows. The
@@ -56,17 +56,17 @@ Building and installation
    You will probably also like to change the following macros: 
    ABCDIR, BINDIR, MANDIR and MANEXT.
 
-   ABCDIR should point to a directory where some
+   `ABCDIR` should point to a directory where some
    program specific files are stored, the PROM contents for example. The font
    used in the window are also stored in a directory in ABCDIR.
 
-   BINDIR should point to the directory where the executable
+   `BINDIR` should point to the directory where the executable
    program should be installed. 
 
-   MANDIR should point to the directory where the manual page should
+   `MANDIR` should point to the directory where the manual page should
    be installed with extension indicated by MANEXT
 
-   The variable DEFINES should be used for any other configuration options,
+   The variable `DEFINES` should be used for any other configuration options,
    read the Makefile to see what options are available.
 
 2. Type "make install". Hopefully that will be enough.
@@ -74,32 +74,32 @@ Building and installation
 
 Acknowledgments
 ---------------
-David Gingold <gingold@think.com>
-Alec Wolman <wolman@crl.dec.com>
-  Wrote the excellent z80-emulator on which the whole program is based.
+    David Gingold <gingold@think.com>
+    Alec Wolman <wolman@crl.dec.com>
+      Wrote the excellent z80-emulator on which the whole program is based.
 
-Anders Andersson <andersa@Mizar.DoCS.UU.SE>
-  Corrected several important bugs, contributed to the screen handling
-  and generally provided a lot of good comments and suggestions.
+    Anders Andersson <andersa@Mizar.DoCS.UU.SE>
+      Corrected several important bugs, contributed to the screen handling
+      and generally provided a lot of good comments and suggestions.
 
-Peter Johansson <d89-pjo@nada.kth.se>
-  Corrected the file IO functions.
+    Peter Johansson <d89-pjo@nada.kth.se>
+      Corrected the file IO functions.
 
-Niclas Wiberg <nicwi@isy.liu.se>
-  Fixed the OpenWindows fonts. Provided several ideas and a lot
-  of support in the beginning of the development.
+    Niclas Wiberg <nicwi@isy.liu.se>
+      Fixed the OpenWindows fonts. Provided several ideas and a lot
+      of support in the beginning of the development.
 
-Jan Danielsson <jan@isy.liu.se>
-  Helped me read the PROMs in their DATA IO equipment.
+    Jan Danielsson <jan@isy.liu.se>
+      Helped me read the PROMs in their DATA IO equipment.
 
-Bo Kullmar <bk@kullmar.kullmar.se>
-  Helped me get in touch with DIAB.
+    Bo Kullmar <bk@kullmar.kullmar.se>
+      Helped me get in touch with DIAB.
 
-DIAB
-  Gave me permission to distribute the PROM-contents.
+    DIAB
+      Gave me permission to distribute the PROM-contents.
 
-Kjell Enblom <kjell-e@lysator.liu.se>
-  Lent me his copy of "Avancerad programmering på ABC80"
+    Kjell Enblom <kjell-e@lysator.liu.se>
+      Lent me his copy of "Avancerad programmering på ABC80"
 
 
 Revision history
@@ -122,19 +122,27 @@ Revision history
 
 1.2    Fix of frustrating bug which caused loss of typed characters on slow
        X-servers (read: OpenWindows).
+
        The UNX: device seem to be working properly at last.
+
        New device LIB: to read contents of current directory.
+
        The much asked for list of error explanations is now available as
        a window wich can be pulled out from under the "main" window. It
        doesn't behave quite right when bringing windows back and front in the
        stack yet, and the text is *very* small, but it's there.
+
        You don't exit the emulator bye hitting "F1" anymore (it wasn't very
        portable), instead, give the command "BYE" and you will exit to the
        (D)OS :-).
+
        The "device driver" is now stored in Intel-hex format and the file
        z80asm.tar contains an assembler and disassembler which can be used for
        hacking that and other things to be read into the emulator.
+
        There is a man-page.
+
        Various minor bugfixes and portability changes.
+
        A couple of stupid BASIC example files (*.BAC) is shipped in the
        realese. You might find LIB.BAC entertaining :-)
