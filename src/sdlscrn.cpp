@@ -9,7 +9,7 @@ extern "C"
 
 #include "abcio.h"
 #include "clock.h"
-#include "nstime.h"
+//#include "nstime.h"
 #include "screen.h"
 #include "screenshot.h"
 #include "trace.h"

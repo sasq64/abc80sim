@@ -6,9 +6,14 @@
 #include "z80.h"
 #include "z80irq.h"
 
+static double ns_per_tstate = 1000.0 / 3.0; /* Nanoseconds per tstate (clock cycle) */
+static double tstate_per_ns = 3.0 / 1000.0; /* Inverse of the above = freq in GHz */
+
 static void abc80_clock_tick(void);
 static void abc800_clock_tick(void);
 static struct abctimer* ctc_timer[4];
+
+static bool limit_speed;
 
 /*
  * Initialize the time for next event
@@ -47,8 +52,15 @@ static struct abctimer* create_timer(uint64_t period, void (*func)(void))
 static unsigned int poll_tstate_period;
 #define MAX_TSTATE_PERIOD 512
 
-void timer_init(void)
+void timer_init(double mhz)
 {
+    if (mhz <= 0.001 || mhz >= 1.0e+6) {
+        limit_speed = false;
+    } else {
+        limit_speed = true;
+        ns_per_tstate = 1000.0 / mhz;
+        tstate_per_ns = mhz / 1000.0;
+    }
     nstime_init();
 
     /* Limit polling to once every μs simulated time */
@@ -69,21 +81,6 @@ void timer_init(void)
         create_timer(MS(20), abc802_vsync);
         break;
     }
-}
-
-static inline bool trigger(uint64_t now, struct abctimer* tmr)
-{
-    /* This expression: a) will overflow safely, b) will never trigger for 0 */
-    if (likely((now - tmr->last) <= (tmr->period - 1)))
-        return false;
-
-    tmr->last += tmr->period;
-    if (unlikely((now - tmr->last) >= tmr->period)) {
-        /* Missed tick(s), advance clock to skip missed */
-        tmr->last = now - ((now - tmr->last) % tmr->period);
-    }
-
-    return true;
 }
 
 /* See if it is time to slow down a bit */

@@ -140,16 +140,16 @@ typedef int mode_t;
 /*
  * How to tell the compiler that a function doesn't return
  */
-#ifdef HAVE_STDNORETURN_H
-#    include <stdnoreturn.h>
-#    define no_return noreturn void
-#elif defined(HAVE_FUNC_ATTRIBUTE_NORETURN)
-#    define no_return void __attribute__((noreturn))
-#elif defined(_MSC_VER)
-#    define no_return __declspec(noreturn) void
-#else
-#    define no_return void
-#endif
+/* #ifdef HAVE_STDNORETURN_H */
+/* #    include <stdnoreturn.h> */
+/* #    define no_return noreturn void */
+/* #elif defined(HAVE_FUNC_ATTRIBUTE_NORETURN) */
+/* #    define no_return void __attribute__((noreturn)) */
+/* #elif defined(_MSC_VER) */
+/* #    define no_return __declspec(noreturn) void */
+/* #else */
+/* #    define no_return void */
+/* #endif */
 
 /*
  * How to tell the compiler that a function is pure arithmetic

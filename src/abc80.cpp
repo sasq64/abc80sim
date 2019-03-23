@@ -1,4 +1,5 @@
-extern "C" {
+extern "C"
+{
 #include "compiler.h"
 
 #include "abcio.h"
@@ -14,11 +15,19 @@ extern "C" {
 #include <SDL_main.h>
 #include <SDL_thread.h>
 
-static int z80_thread(void*);
+    int traceflags;
+    FILE* tracef;
 
-double ns_per_tstate = 1000.0 / 3.0; /* Nanoseconds per tstate (clock cycle) */
-double tstate_per_ns = 3.0 / 1000.0; /* Inverse of the above = freq in GHz */
-bool limit_speed = true;
+    int events_in_queue = 1;
+    volatile int event_pending = 1;
+
+    /* This reflects the screen width at system boot; e.g. ABC802 jumper setting
+     */
+    bool startup_width40 = false;
+}
+
+static int z80_thread(void*);
+static double mhz = 1000.0;
 
 static const char version_string[] = VERSION;
 const char* program_name;
@@ -26,16 +35,6 @@ const char* program_name;
 static const char* tracefile = NULL;
 static const char* memfile = NULL;
 static const char* console_filename = NULL;
-
-int traceflags;
-FILE* tracef;
-
-int events_in_queue = 1;
-volatile int event_pending = 1;
-
-/* This reflects the screen width at system boot; e.g. ABC802 jumper setting */
-bool startup_width40 = false;
-}
 
 /*
  * Read a two digit hex number from a string
@@ -62,7 +61,7 @@ static void load_sysfile(FILE* sysfile)
 
     while (!feof(sysfile)) {
         memory = ram;
-        if(fgets(line, 128, sysfile) == nullptr)
+        if (fgets(line, 128, sysfile) == nullptr)
             break;
         if (line[0] != ':') {
             fprintf(stderr, "Invalid Intel-hex file.\n");
@@ -212,14 +211,7 @@ static void parse_trace(char* arg)
 
 static void set_speed(const char* arg)
 {
-    double mhz = atof(arg);
-    if (mhz <= 0.001 || mhz >= 1.0e+6) {
-        limit_speed = false;
-    } else {
-        limit_speed = true;
-        ns_per_tstate = 1000.0 / mhz;
-        tstate_per_ns = mhz / 1000.0;
-    }
+    mhz = atof(arg);
 }
 
 static void add_casfile(const char* what, const char** pvt)
@@ -472,8 +464,14 @@ int main(int argc, char** argv)
         }
     }
 
+    bool limit_speed;
+    if (mhz <= 0.001 || mhz >= 1.0e+6) {
+        limit_speed = false;
+    } else {
+        limit_speed = true;
+    }
     if (!faketype_set)
-        faketype = !limit_speed || (ns_per_tstate < 1000.0 / 12.5);
+        faketype = !limit_speed || ((1000.0 / mhz) < 1000.0 / 12.5);
 
     /* If no --casdir has been given, default to --filedir */
     if (!cas_path)
@@ -552,7 +550,7 @@ int z80_thread(void* data)
     (void)data;
 
     z80_reset();
-    timer_init();
+    timer_init(mhz);
 
     z80_run(true, false);
 
