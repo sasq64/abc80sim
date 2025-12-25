@@ -2,8 +2,6 @@ cmake_minimum_required(VERSION 3.15)
 project(abc80sim)
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-set(CMAKE_CXX_STANDARD 14)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(SDL REQUIRED)
 
@@ -12,17 +10,26 @@ if(CCACHE_PROGRAM)
   set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CCACHE_PROGRAM}")
 endif()
 
-set(CMAKE_CXX_STANDARD 14)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED On)
+set(CMAKE_CXX_EXTENSIONS Off)
+set(CMAKE_C_STANDARD 23)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+set(CMAKE_C_EXTENSIONS Off)
 
-set(FLAGS
-    -U__STRICT_ANSI__
-    -D_GNU_SOURCE=1
-    -D_THREAD_SAFE
-    -Werror=attributes
-    -W
-    -Wall
-    -pedantic
+if (MSVC)
+    # warning level 4
+    add_compile_options(/W4)
+else()
+    # additional warnings
+    add_compile_options(-W -Wall -Wextra -Wpedantic -Werror)
+    add_compile_definitions(_GNU_SOURCE=1)
+endif()
+add_compile_definitions(
+    _THREAD_SAFE
+    HAVE_CONFIG_H)
+
+list(APPEND FLAGS
     # -Werror=unknown-warning-option
     # -Werror=implicit
     # -Werror=missing-braces
@@ -34,11 +41,7 @@ set(FLAGS
     # -Werror=missing-declarations
     # -Werror=comment
     # -Werror=vla
-    -DHAVE_CONFIG_H
     -fwrapv
-    #-O3
-    -g
-    -ggdb
     -fno-common
     -fvisibility=hidden)
 
