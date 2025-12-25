@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.15)
 project(abc80sim)
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
@@ -36,8 +36,9 @@ set(FLAGS
     # -Werror=vla
     -DHAVE_CONFIG_H
     -fwrapv
-    -O3
+    #-O3
     -g
+    -ggdb
     -fno-common
     -fvisibility=hidden)
 
