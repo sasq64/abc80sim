@@ -109,15 +109,17 @@ struct xy
 static struct xy addr_to_xy_tbl[2][2048];
 
 /* A local abstraction of a drawing surface */
-struct surface
+struct sdl_data
 {
-    SDL_Surface* surf; /* SDL_Surface object */
+    SDL_Window* window; /* SDL_Window object */
+    SDL_Renderer* renderer; /* SDL_Renderer object */
+    SDL_Texture* texture;  /* SDL_Texture object */
     Uint32 colors[NCOLORS];
     int lock_count;   /* Lock nesting count */
     uint64_t updated; /* Time stamp of last update */
 };
 
-static struct surface rscreen; /* The "physical" screen surface */
+static struct sdl_data rscreen; /* The "physical" screen surface */
 
 /*
  * Give the x,y coordinates for a given location in shadow video RAM
@@ -189,16 +191,16 @@ template <int MODEL> static inline uint8_t screendata(uint8_t y, uint8_t x)
 /*
  * Prevent/allow screen refresh
  */
-static void lock_screen(struct surface* s)
+static void lock_screen(struct sdl_data* s)
 {
     if (!s->lock_count++)
-        SDL_LockSurface(s->surf);
+        SDL_LockSurface(SDL_GetWindowSurface(s->window));
 }
 
-static void unlock_screen(struct surface* s)
+static void unlock_screen(struct sdl_data* s)
 {
     if (s->lock_count > 0)
-        SDL_UnlockSurface(s->surf);
+        SDL_UnlockSurface(SDL_GetWindowSurface(s->window));
     else if (unlikely(s->lock_count < 0))
         abort(); /* SHOULD NEVER HAPPEN */
 
@@ -212,7 +214,7 @@ static void unlock_screen(struct surface* s)
  */
 
 template <int MODEL>
-static void put_screen(struct surface* s, unsigned int tx, unsigned int ty,
+static void put_screen(struct sdl_data* s, unsigned int tx, unsigned int ty,
                        bool blink)
 {
     const unsigned char* fontp;
@@ -252,7 +254,7 @@ static void put_screen(struct surface* s, unsigned int tx, unsigned int ty,
     bgp = s->colors[bg];
     fgp = s->colors[fg];
 
-    pixelp = ((uint32_t*)s->surf->pixels) +
+    pixelp = ((uint32_t*)SDL_GetWindowSurface(s->window)->pixels) +
              ty * PX_WIDTH * FONT_YSIZE * FONT_YDUP +
              ((tx * FONT_XSIZE * FONT_XDUP) << vdu.mode40);
 
@@ -283,19 +285,23 @@ static void put_screen(struct surface* s, unsigned int tx, unsigned int ty,
     }
 }
 
-static void update_screen(struct surface* s)
+static void update_screen(struct sdl_data* s)
 {
     if (s->lock_count > 0)
         return;
 
-    SDL_Flip(s->surf);
+    SDL_Surface *surf = SDL_GetWindowSurface(s->window);
+    SDL_UpdateTexture(s->texture, NULL, surf->pixels, surf->pitch);
+    SDL_RenderClear(s->renderer);
+    SDL_RenderCopy(s->renderer, s->texture, NULL, NULL);
+    SDL_RenderPresent(s->renderer);
 }
 
 /*
  * Refresh the entire screen or recreate the screen on another surface.
  * If "force_blink" is true, always draw blinking elements visible.
  */
-static void refresh_screen(struct surface* s, bool force_blink)
+static void refresh_screen(struct sdl_data* s, bool force_blink)
 {
     unsigned int x, y;
     unsigned int width;
@@ -346,17 +352,20 @@ void setmode40(bool m40)
 /*
  * Wrap an SDL_Surface in our local stuff
  */
-static struct surface* init_surface(struct surface* s)
+static struct sdl_data* init_sdl_data(struct sdl_data* s)
 {
     int i;
+    SDL_Surface *surf = SDL_GetWindowSurface(s->window);
 
-    if (unlikely(!s || !s->surf))
+    if (unlikely(!s || !surf))
         return NULL;
 
     /* Convert colors to preferred machine representation */
     for (i = 0; i < NCOLORS; i++) {
-        s->colors[i] = SDL_MapRGB(s->surf->format, rgbcolors[i].r,
-                                  rgbcolors[i].g, rgbcolors[i].b);
+        s->colors[i] = SDL_MapRGB(surf->format,
+                                  rgbcolors[i].r,
+                                  rgbcolors[i].g,
+                                  rgbcolors[i].b);
     }
 
     /* Surface is unlocked */
@@ -370,16 +379,17 @@ static struct surface* init_surface(struct surface* s)
  */
 static void abc_screenshot(void)
 {
-    struct surface s;
+    struct sdl_data s;
 
-    s.surf = SDL_CreateRGBSurface(SDL_SWSURFACE, PX_WIDTH, PX_HEIGHT, 32,
+    SDL_Surface *surf;
+    surf = SDL_CreateRGBSurface(SDL_SWSURFACE, PX_WIDTH, PX_HEIGHT, 32,
                                   0x00ff0000, 0x0000ff00, 0x000000ff, 0);
-    if (!init_surface(&s))
+    if (!init_sdl_data(&s))
         return;
     refresh_screen(&s, true); /* Always snapshot with blink on */
 
-    screenshot(s.surf);
-    SDL_FreeSurface(s.surf);
+    screenshot(surf);
+    SDL_FreeSurface(surf);
 }
 
 /*
@@ -388,18 +398,32 @@ static void abc_screenshot(void)
 void screen_init(bool width40, bool color)
 {
     int window = 1; /* True = run in a window */
-    int debug = 1;  /* False = force clean shutdown */
     int i, x, y;
 
-    if (SDL_Init(SDL_INIT_TIMER | SDL_INIT_VIDEO |
-                 (debug ? SDL_INIT_NOPARACHUTE : 0)))
+    if (SDL_Init(SDL_INIT_TIMER | SDL_INIT_VIDEO))
         return;
 
     atexit(SDL_Quit);
 
-    rscreen.surf = SDL_SetVideoMode(PX_WIDTH, PX_HEIGHT, 32,
-                                    SDL_HWSURFACE | SDL_DOUBLEBUF |
-                                        (window ? 0 : SDL_FULLSCREEN));
+    SDL_CreateWindowAndRenderer(PX_WIDTH, PX_HEIGHT,
+                                SDL_WINDOW_SHOWN,
+                                &rscreen.window, &rscreen.renderer);
+
+    if (rscreen.window == NULL || rscreen.renderer == NULL) {
+        fprintf(stderr, "Failed to initialize SDL objects.");
+        exit(EXIT_FAILURE);
+    }
+
+    SDL_SetRenderDrawColor(rscreen.renderer, 0, 0, 0, 255);
+    SDL_RenderClear(rscreen.renderer);
+
+    SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");  // make the scaled rendering look smoother.
+    SDL_RenderSetLogicalSize(rscreen.renderer, PX_WIDTH, PX_HEIGHT);
+
+    rscreen.texture = SDL_CreateTexture(rscreen.renderer,
+                               SDL_PIXELFORMAT_ARGB8888,
+                               SDL_TEXTUREACCESS_STREAMING,
+                               PX_WIDTH, PX_HEIGHT);
 
     /* No mouse cursor in full screen mode */
     if (!window)
@@ -436,14 +460,8 @@ void screen_init(bool width40, bool color)
     /* Create interlock mutex */
     screen_mutex = SDL_CreateMutex();
 
-    if (!init_surface(&rscreen))
+    if (!init_sdl_data(&rscreen))
         return;
-
-    /* Enable keyboard decoding */
-    SDL_EnableUNICODE(1);
-
-    /* Enable keyboard repeat */
-    SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, SDL_DEFAULT_REPEAT_INTERVAL);
 
     /* Draw initial screen */
     refresh_screen(&rscreen, false);
@@ -472,7 +490,8 @@ static volatile enum dump_memory_type dump_memory_now;
 void event_loop(void)
 {
     SDL_Event event;
-    static int keyboard_scan = -1; /* No key currently down */
+    static int keyboard_scan = -1, /* No key currently down */
+               pend_keyboard_scan = -1;
     enum kshift
     {
         KSH_SHIFT = 1,
@@ -532,12 +551,17 @@ void event_loop(void)
                 int mysym = -1;
 
                 switch (event.key.keysym.sym) {
+                case SDLK_BACKSPACE:
                 case SDLK_LEFT:
                     mysym = 8;
                     break;
 
                 case SDLK_RIGHT:
                     mysym = 9;
+                    break;
+
+                case SDLK_TAB:
+                    mysym = '\t';
                     break;
 
                 case SDLK_F1:
@@ -557,200 +581,107 @@ void event_loop(void)
                     break;
 
                 case SDLK_SPACE: /* Ctrl+Space -> NUL */
-                    mysym = (kshift ^ KSH_CTRL) << 4;
+                    if (kshift & KSH_CTRL)
+                        mysym = 0;
                     break;
 
-                default:
-                    switch (event.key.keysym.unicode) {
-                    case 1:
-                    case 2:
-                    case 3:
-                    case 4:
-                    case 5:
-                    case 6:
-                    case 7:
-                    case 8:
-                    case 9:
-                    case 10:
-                    case 11:
-                    case 12:
-                    case 13:
-                    case 14:
-                    case 15:
-                    case 16:
-                    case 17:
-                    case 18:
-                    case 19:
-                    case 20:
-                    case 21:
-                    case 22:
-                    case 23:
-                    case 24:
-                    case 25:
-                    case 26:
-                    case 27:
-                    case 28:
-                    case 29:
-                    case 30:
-                    case 31:
-                    case ' ':
-                    case '!':
-                    case '"':
-                    case '#':
-                    case '$':
-                    case '%':
-                    case '&':
-                    case 39:
-                    case '(':
-                    case ')':
-                    case '*':
-                    case '+':
-                    case ',':
-                    case '-':
-                    case '.':
-                    case '/':
-                    case '0':
-                    case '1':
-                    case '2':
-                    case '3':
-                    case '4':
-                    case '5':
-                    case '6':
-                    case '7':
-                    case '8':
-                    case '9':
-                    case ':':
-                    case ';':
-                    case '=':
-                    case '?':
-                    case '@':
-                    case 'A':
-                    case 'B':
-                    case 'C':
-                    case 'D':
-                    case 'E':
-                    case 'F':
-                    case 'G':
-                    case 'H':
-                    case 'I':
-                    case 'J':
-                    case 'K':
-                    case 'L':
-                    case 'M':
-                    case 'N':
-                    case 'O':
-                    case 'P':
-                    case 'Q':
-                    case 'R':
-                    case 'S':
-                    case 'T':
-                    case 'U':
-                    case 'V':
-                    case 'W':
-                    case 'X':
-                    case 'Y':
-                    case 'Z':
-                    case '[':
-                    case 92:
-                    case ']':
-                    case '^':
-                    case '_':
-                    case '`':
-                    case 'a':
-                    case 'b':
-                    case 'c':
-                    case 'd':
-                    case 'e':
-                    case 'f':
-                    case 'g':
-                    case 'h':
-                    case 'i':
-                    case 'j':
-                    case 'k':
-                    case 'l':
-                    case 'm':
-                    case 'n':
-                    case 'o':
-                    case 'p':
-                    case 'q':
-                    case 'r':
-                    case 's':
-                    case 't':
-                    case 'u':
-                    case 'v':
-                    case 'w':
-                    case 'x':
-                    case 'y':
-                    case 'z':
-                    case '{':
-                    case '|':
-                    case '}':
-                    case '~':
-                    case 127:
-                        mysym = event.key.keysym.unicode;
-                        break;
-                    case L'¤':
-                        mysym = '$';
-                        break;
-                    case L'É':
-                        mysym = '@';
-                        break;
-                    case L'Å':
-                        mysym = ']';
-                        break;
-                    case L'Ä':
-                        mysym = '[';
-                        break;
-                    case L'Ö':
-                        mysym = '\\';
-                        break;
-                    case L'Ü':
-                        mysym = '^';
-                        break;
-                    case L'é':
-                        mysym = '`';
-                        break;
-                    case L'å':
-                        mysym = '}';
-                        break;
-                    case L'ä':
-                        mysym = '{';
-                        break;
-                    case L'ö':
-                        mysym = '|';
-                        break;
-                    case L'ü':
-                        mysym = '~';
-                        break;
-                    case L'<':
-                    case L'>':
-                        mysym = (kshift & KSH_CTRL) ? 127
-                                                    : event.key.keysym.unicode;
-                        break;
-                    case L'§':
-                    case L'½':
-                        mysym = 127;
-                        break;
-                    default:
-                        break;
-                    }
-                    if (!(mysym & ~0x1f)) {
-                        /* Shift+Ctrl -> invert bit 4 */
-                        if (kshift == (KSH_CTRL | KSH_SHIFT))
-                            mysym ^= 0x10;
-                    }
+                case SDLK_RETURN:
+                case SDLK_KP_ENTER:
+                    mysym = '\r';
+                    break;
+
+                default: break;
                 }
                 if (mysym >= 0) {
                     /* Remember which key so we can tell when it is released */
                     keyboard_scan = event.key.keysym.scancode;
                     keyboard_down(mysym);
-                }
+                } else
+                    pend_keyboard_scan = event.key.keysym.scancode;
             }
             break;
         case SDL_KEYUP:
             if (event.key.keysym.scancode == keyboard_scan)
                 keyboard_up();
             break;
+        case SDL_TEXTINPUT: {
+            int mysym = -1;
+            switch (SDL_strlen(event.text.text)) {
+            case 1:
+                assert((event.text.text[0] & 0x80) == 0);
+                mysym = event.text.text[0];
+                break;
+            case 2:
+                // Get a unicode 2 byte sequence.
+                assert((event.text.text[0] & 0xE0) == 0xC0);
+                assert((event.text.text[1] & 0xC0) == 0x80);
+                mysym = ((event.text.text[0] & 0x1C) << 8) & 0xff00;
+                mysym |= ((event.text.text[0] & 0x03) << 6) & 0x00C0;
+                mysym |= ((event.text.text[1] & 0x3F));
+                break;
+            default:
+                break; // Not a supported character.
+            }
+
+            switch ((wchar_t)mysym) {
+            case L'¤':
+                mysym = '$';
+                break;
+            case L'É':
+                mysym = '@';
+                break;
+            case L'Å':
+                mysym = ']';
+                break;
+            case L'Ä':
+                mysym = '[';
+                break;
+            case L'Ö':
+                mysym = '\\';
+                break;
+            case L'Ü':
+                mysym = '^';
+                break;
+            case L'é':
+                mysym = '`';
+                break;
+            case L'å':
+                mysym = '}';
+                break;
+            case L'ä':
+                mysym = '{';
+                break;
+            case L'ö':
+                mysym = '|';
+                break;
+            case L'ü':
+                mysym = '~';
+                break;
+            case L'<':
+            case L'>':
+                if (kshift & KSH_CTRL)
+                    mysym = 127;
+                break;
+            case L'§':
+            case L'½':
+                mysym = 127;
+                break;
+            default:
+                break;
+            }
+
+            if (!(mysym & ~0x1f)) {
+                /* Shift+Ctrl -> invert bit 4 */
+                if (kshift == (KSH_CTRL | KSH_SHIFT))
+                    mysym ^= 0x10;
+            }
+            if (mysym >= 0) {
+                /* Remember which key so we can tell when it is released */
+                keyboard_scan = pend_keyboard_scan;
+                keyboard_down(mysym);
+            }
+        } break;
+
         case SDL_USEREVENT:
             /* Time to update the screen */
             refresh_screen(&rscreen, false);

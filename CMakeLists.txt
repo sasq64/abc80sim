@@ -3,7 +3,7 @@ project(abc80sim)
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-find_package(SDL REQUIRED)
+find_package(SDL2 REQUIRED)
 
 find_program(CCACHE_PROGRAM ccache)
 if(CCACHE_PROGRAM)
@@ -76,7 +76,15 @@ set(SOURCES
     src/roms/abc80bas80o.c)
 
 add_executable(emu ${SOURCES})
-target_link_libraries(emu PUBLIC png z ${SDL_LIBRARY})
-target_include_directories(emu PRIVATE ${SDL_INCLUDE_DIR})
+#message(FATAL_ERROR ${SDL2_LIBRARIES})
+target_link_libraries(emu PUBLIC png z ${SDL2_LIBRARIES})
+target_include_directories(emu PRIVATE ${SDL2_INCLUDE_DIR})
 target_compile_options(emu PRIVATE ${FLAGS})
 
+add_custom_target(copy_examples
+    COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different
+        "${CMAKE_CURRENT_SOURCE_DIR}/abcdir/"
+        "$<TARGET_FILE_DIR:emu>/abcdir"
+    COMMENT "Copying examples"
+)
+add_dependencies(copy_examples)

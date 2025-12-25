@@ -536,7 +536,7 @@ int main(int argc, char** argv)
     /*
      * Off we go...
      */
-    cpu_thread = SDL_CreateThread(z80_thread, NULL);
+    cpu_thread = SDL_CreateThread(z80_thread, "cpu_thread", NULL);
     event_loop(); /* Handling external events and screen */
     z80_quit = true;
     SDL_WaitThread(cpu_thread, NULL);

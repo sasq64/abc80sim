@@ -204,61 +204,71 @@ static void my_png_warning(png_structp png, png_const_charp warnmsg)
 static SDL_PixelFormat pngfmts[2] = {
     {
         /* RGB format */
+        .format = SDL_PIXELFORMAT_ARGB32,
 
-        NULL,       /* palette */
-        24,         /* bits per pixel */
-        3,          /* bytes per pixel */
-        0, 0, 0, 8, /* precision loss (8 = all alpha lost) */
+        .palette = NULL,       /* palette */
+        .BitsPerPixel = 24,         /* bits per pixel */
+        .BytesPerPixel = 3,          /* bytes per pixel */
+        .padding = {0, 0},
 #if SDL_BYTEORDER == SDL_LIL_ENDIAN
-        0,          /* Rshift */
-        8,          /* Gshift */
-        16,         /* Bshift */
-        0,          /* Ashift */
-        0x000000ff, /* Rmask */
-        0x0000ff00, /* Gmask */
-        0x00ff0000, /* Bmask */
+        .Rmask = 0x000000ff,
+        .Gmask = 0x0000ff00,
+        .Bmask = 0x00ff0000,
+        .Rshift = 0,
+        .Gshift = 8,
+        .Bshift = 16,
 #else
-        16,         /* Rshift */
-        8,          /* Gshift */
-        0,          /* Bshift */
-        0,          /* Ashift */
-        0x00ff0000, /* Rmask */
-        0x0000ff00, /* Gmask */
-        0x000000ff, /* Bmask */
+        .Rmask = 0x00ff0000,
+        .Gmask = 0x0000ff00,
+        .Bmask = 0x000000ff,
+        .Rshift = 16,
+        .Gshift = 8,
+        .Bshift = 0,
 #endif
-        0x00000000, /* Amask */
-        0,          /* No actual color key */
-        255         /* Completely opaque */
+        .Amask = 0x00000000,
+        .Ashift = 0,
+
+        .Rloss = 0,
+        .Gloss = 0,
+        .Bloss = 0,
+        .Aloss = 0,
+        .refcount = 1,
+        .next = NULL
     },
-    {
-        /* RGBA format */
+    {        /* RGBA format */
+        .format = SDL_PIXELFORMAT_ARGB32,
 
-        NULL,       /* palette */
-        32,         /* bits per pixel */
-        4,          /* bytes per pixel */
-        0, 0, 0, 0, /* precision loss (none) */
+        .palette = NULL,
+        .BitsPerPixel = 24,
+        .BytesPerPixel = 3,
+        .padding = {0, 0},
 #if SDL_BYTEORDER == SDL_LIL_ENDIAN
-        0,          /* Rshift */
-        8,          /* Gshift */
-        16,         /* Bshift */
-        24,         /* Ashift */
-        0x000000ff, /* Rmask */
-        0x0000ff00, /* Gmask */
-        0x00ff0000, /* Bmask */
-        0xff000000, /* Amask */
+        .Rmask = 0x000000ff,
+        .Gmask = 0x0000ff00,
+        .Bmask = 0x00ff0000,
+        .Rshift = 0,
+        .Gshift = 8,
+        .Bshift = 16,
+        .Amask = 0xFF000000,
+        .Ashift = 24,
 #else
-        24,         /* Rshift */
-        16,         /* Gshift */
-        8,          /* Bshift */
-        0,          /* Ashift */
-        0xff000000, /* Rmask */
-        0x00ff0000, /* Gmask */
-        0x0000ff00, /* Bmask */
-        0x000000ff, /* Amask */
+        .Rmask = 0xff000000,
+        .Gmask = 0x00ff0000,
+        .Bmask = 0x0000ff00,
+        .Amask = 0x000000ff,
+        .Rshift = 16,
+        .Gshift = 8,
+        .Bshift = 0,
+        .Ashift = 24,
 #endif
-        0,  /* No actual color key */
-        255 /* Completely opaque */
-    }};
+        .Rloss = 0,
+        .Gloss = 0,
+        .Bloss = 0,
+        .Aloss = 0,
+        .refcount = 1,
+        .next = NULL
+    }
+};
 
 /*
  * This is a bit of a hack to work around potentially dangerous
