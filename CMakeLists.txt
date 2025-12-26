@@ -64,6 +64,7 @@ set(SOURCES
     src/screenshot.c
     src/sdlscrn.cpp
     src/simprint.c
+    src/sound.c
     src/trace.c
     src/z80.c
     src/z80dis.c
@@ -76,7 +77,7 @@ set(SOURCES
     src/roms/abc80bas80o.c)
 
 add_library(emu_lib STATIC ${SOURCES})
-target_link_libraries(emu_lib PUBLIC ${SDL2_LIBRARIES} ${SDL2_IMAGE_LIBRARIES} SDL2_image::SDL2_image)
+target_link_libraries(emu_lib PUBLIC ${SDL2_LIBRARIES} ${SDL2_IMAGE_LIBRARIES} SDL2_image::SDL2_image m)
 target_include_directories(emu_lib PRIVATE ${SDL2_INCLUDE_DIR} ${SDL2_IMAGE_INCLUDE_DIRS})
 target_compile_options(emu_lib PRIVATE ${FLAGS})
 

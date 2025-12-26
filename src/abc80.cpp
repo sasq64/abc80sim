@@ -542,6 +542,8 @@ int main(int argc, char** argv)
     SDL_WaitThread(cpu_thread, NULL);
 
     screen_reset();
+
+    io_destroy();
     exit(0);
 }
 

@@ -3,6 +3,7 @@
 #include "abcio.h"
 #include "clock.h"
 #include "screen.h"
+#include "sound.h"
 #include "trace.h"
 #include "z80.h"
 #include "z80irq.h"
@@ -87,10 +88,7 @@ static void abc80_out(uint8_t port, uint8_t value)
         break;
 
     case 6: /* sound */
-        if (value == 131) {
-            putchar(7); /* beep */
-            fflush(stdout);
-        }
+        sound_event(value);
         break;
 
     case 7: /* Mikrodatorn 64K page switch port */
@@ -481,5 +479,11 @@ void io_init(void)
         keyb_irq = &keyb_irq_800;
         break;
     }
+    sound_init();
     z80_register_irq(keyb_irq);
+}
+
+void io_destroy(void)
+{
+    sound_destroy();
 }

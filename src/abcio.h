@@ -5,6 +5,7 @@
 #include "hostfile.h"
 
 extern void io_init(void);
+extern void io_destroy(void);
 
 enum model
 {
