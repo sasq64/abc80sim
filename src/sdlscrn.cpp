@@ -379,17 +379,20 @@ static struct sdl_data* init_sdl_data(struct sdl_data* s)
  */
 static void abc_screenshot(void)
 {
-    struct sdl_data s;
+    lock_screen(&rscreen);
+    refresh_screen(&rscreen, true); /* Always snapshot with blink on */
 
-    SDL_Surface *surf;
-    surf = SDL_CreateRGBSurface(SDL_SWSURFACE, PX_WIDTH, PX_HEIGHT, 32,
-                                  0x00ff0000, 0x0000ff00, 0x000000ff, 0);
-    if (!init_sdl_data(&s))
-        return;
-    refresh_screen(&s, true); /* Always snapshot with blink on */
+    SDL_Surface *surf = SDL_CreateRGBSurface(0,
+                            PX_WIDTH, PX_HEIGHT, 32,
+                            0x00ff0000, 0x0000ff00, 0x000000ff, 0);
+    SDL_LockSurface(surf);
+    SDL_RenderReadPixels(rscreen.renderer, NULL, SDL_PIXELFORMAT_ARGB8888,
+                         surf->pixels, surf->pitch);
 
     screenshot(surf);
+    SDL_UnlockSurface(surf);
     SDL_FreeSurface(surf);
+    unlock_screen(&rscreen);
 }
 
 /*
@@ -487,30 +490,38 @@ enum dump_memory_type
 
 static volatile enum dump_memory_type dump_memory_now;
 
+/**
+ * Key modifiers
+ */
+enum kshift
+{
+    KSH_SHIFT = 1,
+    KSH_CTRL = 2,
+    KSH_ALT = 4
+};
+
+static int keyshift_from_event(SDL_Event *event)
+{
+    return ((event->key.keysym.mod & (KMOD_LALT | KMOD_RALT)) ? KSH_ALT
+                                                                  : 0) |
+            ((event->key.keysym.mod & (KMOD_LCTRL | KMOD_RCTRL)) ? KSH_CTRL
+                                                                : 0) |
+            ((event->key.keysym.mod & (KMOD_LSHIFT | KMOD_RSHIFT))
+                    ? KSH_SHIFT
+                    : 0);
+}
+
 void event_loop(void)
 {
     SDL_Event event;
     static int keyboard_scan = -1, /* No key currently down */
                pend_keyboard_scan = -1;
-    enum kshift
-    {
-        KSH_SHIFT = 1,
-        KSH_CTRL = 2,
-        KSH_ALT = 4
-    };
     int kshift;
 
     while (SDL_WaitEvent(&event)) {
         switch (event.type) {
         case SDL_KEYDOWN:
-            kshift =
-                ((event.key.keysym.mod & (KMOD_LALT | KMOD_RALT)) ? KSH_ALT
-                                                                  : 0) |
-                ((event.key.keysym.mod & (KMOD_LCTRL | KMOD_RCTRL)) ? KSH_CTRL
-                                                                    : 0) |
-                ((event.key.keysym.mod & (KMOD_LSHIFT | KMOD_RSHIFT))
-                     ? KSH_SHIFT
-                     : 0);
+            kshift = keyshift_from_event(&event);
 
             if (kshift & KSH_ALT) {
                 /* Alt+key are special functions */
@@ -605,6 +616,10 @@ void event_loop(void)
                 keyboard_up();
             break;
         case SDL_TEXTINPUT: {
+            kshift = keyshift_from_event(&event);
+            if (kshift & KSH_ALT)
+                break;
+
             int mysym = -1;
             switch (SDL_strlen(event.text.text)) {
             case 1:

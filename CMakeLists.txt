@@ -4,6 +4,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 find_package(SDL2 REQUIRED)
+find_package(SDL2_image REQUIRED)
 
 find_program(CCACHE_PROGRAM ccache)
 if(CCACHE_PROGRAM)
@@ -46,7 +47,6 @@ list(APPEND FLAGS
     -fvisibility=hidden)
 
 set(SOURCES
-    src/abc80.cpp
     src/abcfile.c
     src/abcfont.c
     src/abcio.c
@@ -75,16 +75,20 @@ set(SOURCES
     src/roms/abc80bas80n.c
     src/roms/abc80bas80o.c)
 
-add_executable(emu ${SOURCES})
-#message(FATAL_ERROR ${SDL2_LIBRARIES})
-target_link_libraries(emu PUBLIC png z ${SDL2_LIBRARIES})
-target_include_directories(emu PRIVATE ${SDL2_INCLUDE_DIR})
+add_library(emu_lib STATIC ${SOURCES})
+target_link_libraries(emu_lib PUBLIC ${SDL2_LIBRARIES} ${SDL2_IMAGE_LIBRARIES} SDL2_image::SDL2_image)
+target_include_directories(emu_lib PRIVATE ${SDL2_INCLUDE_DIR} ${SDL2_IMAGE_INCLUDE_DIRS})
+target_compile_options(emu_lib PRIVATE ${FLAGS})
+
+add_executable(emu src/abc80.cpp)
+target_link_libraries(emu PUBLIC emu_lib ${SDL2_LIBRARIES} ${SDL2_IMAGE_LIBRARIES} SDL2_image::SDL2_image)
+target_include_directories(emu PRIVATE ${SDL2_INCLUDE_DIR} ${SDL2_IMAGE_INCLUDE_DIRS})
 target_compile_options(emu PRIVATE ${FLAGS})
 
 add_custom_target(copy_examples
     COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different
         "${CMAKE_CURRENT_SOURCE_DIR}/abcdir/"
-        "$<TARGET_FILE_DIR:emu>/abcdir"
+        "$<TARGET_FILE_DIR:emu_lib>/abcdir"
     COMMENT "Copying examples"
 )
-add_dependencies(copy_examples)
+add_dependencies(emu copy_examples)
