@@ -9,7 +9,7 @@
 
 void unmangle_filename(char* dst, const char* src)
 {
-    static const wchar_t my_tolower[256] =
+    static const wchar_t my_tolower[257] =
         L"\000\001\002\003\004\005\006\007\010\011\012\013\014\015\016\017"
         L"\020\021\022\023\024\025\026\027\030\031\032\033\034\035\036\037"
         L" !\"#¤%&'()*+,-./0123456789:;<=>?"
