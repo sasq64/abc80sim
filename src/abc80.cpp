@@ -26,6 +26,10 @@ extern "C"
     bool startup_width40 = false;
 }
 
+#ifdef __EMSCRIPTEN__
+#include "emscripten.h"
+#endif
+
 static int z80_thread(void*);
 static double mhz = 1000.0;
 
@@ -537,7 +541,12 @@ int main(int argc, char** argv)
      * Off we go...
      */
     cpu_thread = SDL_CreateThread(z80_thread, "cpu_thread", NULL);
+#ifdef __EMSCRIPTEN__
+    emscripten_set_main_loop(event_loop, 60, 0);
+    (void)cpu_thread; // squelsh unused variable
+#else
     event_loop(); /* Handling external events and screen */
+
     z80_quit = true;
     SDL_WaitThread(cpu_thread, NULL);
 
@@ -545,6 +554,7 @@ int main(int argc, char** argv)
 
     io_destroy();
     exit(0);
+#endif
 }
 
 int z80_thread(void* data)

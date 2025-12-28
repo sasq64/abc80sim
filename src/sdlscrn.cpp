@@ -403,8 +403,10 @@ void screen_init(bool width40, bool color)
     int window = 1; /* True = run in a window */
     int i, x, y;
 
-    if (SDL_Init(SDL_INIT_TIMER | SDL_INIT_VIDEO))
-        return;
+    if (SDL_Init(SDL_INIT_TIMER | SDL_INIT_VIDEO)) {
+        fprintf(stderr, "Failed SDL_Init: %s\n", SDL_GetError());
+        exit(EXIT_FAILURE);
+    }
 
     atexit(SDL_Quit);
 
@@ -518,7 +520,11 @@ void event_loop(void)
                pend_keyboard_scan = -1;
     int kshift;
 
+#ifdef __EMSCRIPTEN__
+    while (SDL_PollEvent(&event)) {
+#else
     while (SDL_WaitEvent(&event)) {
+#endif
         switch (event.type) {
         case SDL_KEYDOWN:
             kshift = keyshift_from_event(&event);
@@ -601,7 +607,10 @@ void event_loop(void)
                     mysym = '\r';
                     break;
 
-                default: break;
+                default:
+                    if (kshift & KSH_CTRL)
+                        mysym = event.key.keysym.scancode;
+                    break;
                 }
                 if (mysym >= 0) {
                     /* Remember which key so we can tell when it is released */
