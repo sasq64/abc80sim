@@ -561,6 +561,19 @@ void event_loop(void)
                     faketype = !faketype;
                     break;
 
+                case SDLK_1:
+                    if (kshift & KSH_CTRL)
+                        timer_set_speed(CLOCKSPEED_1x);
+                    break;
+                case SDLK_2:
+                    if (kshift & KSH_CTRL)
+                        timer_set_speed(CLOCKSPEED_10x);
+                    break;
+                case SDLK_3:
+                    if (kshift & KSH_CTRL)
+                        timer_set_speed(CLOCKSPEED_UNLIMITED);
+                    break;
+
                 default:
                     break;
                 }

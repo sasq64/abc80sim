@@ -1,3 +1,4 @@
+#include <SDL_mutex.h>
 #include "clock.h"
 #include "abcio.h"
 #include "compiler.h"
@@ -12,6 +13,7 @@ static double tstate_per_ns = 3.0 / 1000.0; /* Inverse of the above = freq in GH
 static void abc80_clock_tick(void);
 static void abc800_clock_tick(void);
 static struct abctimer* ctc_timer[4];
+static SDL_mutex *z80threadlock;
 
 static bool limit_speed;
 
@@ -52,8 +54,9 @@ static struct abctimer* create_timer(uint64_t period, void (*func)(void))
 static unsigned int poll_tstate_period;
 #define MAX_TSTATE_PERIOD 512
 
-void timer_init(double mhz)
+void timer_set_speed(double mhz)
 {
+    SDL_LockMutex(z80threadlock);
     if (mhz <= 0.001 || mhz >= 1.0e+6) {
         limit_speed = false;
     } else {
@@ -61,12 +64,20 @@ void timer_init(double mhz)
         ns_per_tstate = 1000.0 / mhz;
         tstate_per_ns = mhz / 1000.0;
     }
-    nstime_init();
 
     /* Limit polling to once every μs simulated time */
     poll_tstate_period = 1000 * ns_per_tstate;
     if (!limit_speed || poll_tstate_period > MAX_TSTATE_PERIOD)
         poll_tstate_period = MAX_TSTATE_PERIOD;
+
+    SDL_UnlockMutex(z80threadlock);
+}
+
+void timer_init(double mhz)
+{
+    z80threadlock = SDL_CreateMutex();
+    timer_set_speed(mhz);
+    nstime_init();
 
     switch (model) {
     case MODEL_ABC80:
@@ -83,6 +94,11 @@ void timer_init(double mhz)
     }
 }
 
+void timer_destroy()
+{
+    SDL_DestroyMutex(z80threadlock);
+}
+
 /* See if it is time to slow down a bit */
 static void consider_napping(uint64_t now, uint64_t next)
 {
@@ -93,7 +109,9 @@ static void consider_napping(uint64_t now, uint64_t next)
     if (unlikely(now <= ref_time || TSTATE <= ref_tstate))
         goto weird;
 
+    SDL_LockMutex(z80threadlock);
     when = ref_time + (TSTATE - ref_tstate) * ns_per_tstate;
+    SDL_UnlockMutex(z80threadlock);
     behind = now - when;
     ahead = when - next;
 
@@ -117,17 +135,23 @@ volatile bool z80_quit;
 
 bool z80_poll_external(void)
 {
+    SDL_LockMutex(z80threadlock);
+
     uint64_t now;
     static uint64_t next = 0;
     int i;
     bool sleepy = limit_speed;
     static uint64_t next_check_tstate;
 
-    if (z80_quit)
+    if (z80_quit) {
+        SDL_UnlockMutex(z80threadlock);
         return true; /* Terminate CPU loop */
+    }
 
-    if (likely(TSTATE < next_check_tstate))
+    if (likely(TSTATE < next_check_tstate)) {
+        SDL_UnlockMutex(z80threadlock);
         return false;
+    }
 
     now = nstime();
 
@@ -164,6 +188,8 @@ bool z80_poll_external(void)
         if (next_ev < next_check_tstate)
             next_check_tstate = next_ev;
     }
+
+    SDL_UnlockMutex(z80threadlock);
 
     if (sleepy)
         consider_napping(now, next);
@@ -236,6 +262,7 @@ uint8_t abc800_ctc_in(uint8_t port)
     if (!t)
         return -1;
 
+    SDL_LockMutex(z80threadlock);
     if (limit_speed) {
         /* Interpolate based on TSTATEs (virtual time) */
         v = ((int64_t)t->period -
@@ -245,6 +272,7 @@ uint8_t abc800_ctc_in(uint8_t port)
         /* Interpolate based on nanoseconds (real time) */
         v = ((t->period - (nstime() - t->last)) * div) / t->period;
     }
+    SDL_UnlockMutex(z80threadlock);
 
     return v;
 }

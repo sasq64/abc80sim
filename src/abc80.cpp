@@ -31,7 +31,7 @@ extern "C"
 #endif
 
 static int z80_thread(void*);
-static double mhz = 1000.0;
+static double mhz = CLOCKSPEED_UNLIMITED;
 
 static const char version_string[] = VERSION;
 const char* program_name;
@@ -161,6 +161,9 @@ static void load_sysfile(FILE* sysfile)
    "  Alt-m    dump memory as currently seen from the CPU\n"
    "  Alt-u    dump underlying RAM only (even nonexistent)\n"
    "  Alt-f    turn faketype on or off\n"
+   "  Ctrl-Alt-1    Set cpu clockspeed to 3.0 MHz (original speed)\n"
+   "  Ctrl-Alt-2    Set cpu clockspeed to 30 MHz (10x original speed)\n"
+   "  Ctrl-Alt-3    Disable cpu clockspeed throttling\n"
    , program_name);
     // clang-format on
     exit(1);
@@ -553,6 +556,7 @@ int main(int argc, char** argv)
     screen_reset();
 
     io_destroy();
+    timer_destroy();
     exit(0);
 #endif
 }
