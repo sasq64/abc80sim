@@ -1,0 +1,107 @@
+1 REM ++++++++++++++++++++++++++++++++
+2 REM ! Program ....   JULGRAN
+3 REM ! Utg}va  1.0    83-05-31
+4 REM ! av (c) Patrik Eveborn
+7 REM ! Minne 16 Kbytes
+8 REM ! Ins{nt av Patrik Eveborn
+9 REM ++++++++++++++++++++++++++++++++
+10 REM 
+11 REM Screened by  C R LERIN.
+12 REM 
+100 Y%=5% : DIM R%(50) : DIM K%(50) : ]%=0 : W=0
+110 ; CHR$(12)
+120 ; '              JULGRAN'
+130 ; '              ======='
+140 ; 'DU SKA F\RS\KA ATT UNDVIKA ATT K\RA P]  GRANARNA. DET G\R DU L[TTAST GENOM ATT'
+150 ; 'TRYCKA P] "U" F\R ATT ]KA UPP]T ELLER   "N" F\R ATT ]KA NER]T.'
+160 ; CUR(10,0)'HUR M]NGA GRANAR P] SK[RMEN(3-15)';
+170 INPUT L%
+180 IF L%<3 THEN 110
+190 IF L%>15 THEN 110
+200 RANDOMIZE 
+210 X%=0% : Y%=INT(2%+18%*RND)
+220 ; CHR$(12%)
+230 ; CUR(3%,0%)'========================================'
+240 ; CUR(23%,0%)'========================================'
+250 ; CUR(0%,3%)'PO[NG = '
+260 FOR U%=1% TO L%
+270 K%(U%)=INT(5%+30%*RND)
+280 R%(U%)=INT(2%+11%*RND)
+290 ; CUR(R%(U%),K%(U%))'X'
+300 ; CUR(R%(U%)+1%,K%(U%)-1%)'XXX'
+310 ; CUR(R%(U%)+2%,K%(U%)-2%)'XXXXX'
+320 ; CUR(R%(U%)+3%,K%(U%)-1%)'XXX'
+330 ; CUR(R%(U%)+4%,K%(U%)-2%)'XXXXX'
+340 ; CUR(R%(U%)+5%,K%(U%)-3%)'XXXXXXX'
+350 ; CUR(R%(U%)+6%,K%(U%)-2%)'XXXXX'
+360 ; CUR(R%(U%)+7%,K%(U%))'O'
+370 ; CUR(R%(U%)+8%,K%(U%))'O'
+380 NEXT U%
+390 IF W=0 THEN 400 ELSE 410
+400 FOR I=1 TO 3000 : NEXT I
+410 T%=INP(56%)-128%
+420 IF T%=85% THEN Y%=Y%-1%
+430 IF T%=78% THEN Y%=Y%+1%
+440 X%=X%+1%
+450 IF X%=39% THEN 210
+460 FOR U%=1% TO L%
+470 FOR I%=0% TO 8%
+480 IF R%(U%)+I%=Y% AND K%(U%)=X% THEN 580
+490 NEXT I%
+500 NEXT U%
+510 ; CUR(Y%,X%)'o'
+520 ]%=]%+L%
+530 GOSUB 1050
+540 FOR I%=1% TO 25% : NEXT I%
+550 IF Y%=1% OR Y%=21% THEN 580
+560 W=W+1
+570 GOTO 410
+580 ; CHR$(12)
+590 ; CUR(12%,15%)'K R A S C H'
+600 FOR I=1 TO 1000 : OUT 6,11 : NEXT I
+610 OUT 6,0
+620 ; CHR$(12)
+630 ; 'DU FICK';]%;' PO[NG.'
+640 IF ]%>C% THEN 650 ELSE 710
+650 ; 'DU [R M[STARE P] DETTA SPEL!            SKRIV IN DITT NAMN!'
+660 INPUTLINE N$
+670 N$=LEFT$(N$,LEN(N$)-2)
+680 C%=]%
+690 FOR I=1 TO 2000 : NEXT I
+700 GOTO 760
+710 ; : ; 
+720 ; 'M[STARE P] DETTA SPEL [R ....'
+730 ; 
+740 ; N$ : ; 'HAN HADE N[MLIGEN';C%;' PO[NG'
+750 ; : ; 
+760 FOR I=1 TO 2000 : NEXT I
+770 ; : ; 
+780 ; 'DATORNS TYCKANDE:'
+790 ; : ; 
+800 IF ]%<400% THEN ; '[CKLIGT D]LIGT' : IF ]%<400% THEN 1020
+810 IF ]%<800% THEN ; 'S[PPT'
+820 IF ]%<800% THEN 1020
+830 IF ]%<1500% THEN ; 'INTE BRA'
+840 IF ]%<1500% THEN 1020
+850 IF ]%<3000% THEN ; 'NYB\RJARE'
+860 IF ]%<3000% THEN 1020
+870 IF ]%<5500% THEN ; 'MEDEL'
+880 IF ]%<5500% THEN 1020
+890 IF ]%<8000% THEN ; 'GODK[NT'
+900 IF ]%<8000% THEN 1020
+910 IF ]%<11000% THEN ; 'BRA'
+920 IF ]%<11000% THEN 1020
+930 IF ]%<15000% THEN ; 'UTM[RKT'
+940 IF ]%<15000% THEN 1020
+950 IF ]%<20000% THEN ; 'PERFEKT'
+960 IF ]%<20000% THEN 1020
+970 IF ]%<25000% THEN ; 'DU [R B[TTRE [N PERFEKT'
+980 IF ]%<25000% THEN 1020
+990 IF ]%<32000% THEN ; 'DU BLIR JU SNART V[RLDSM[STARE!'
+1000 IF ]%<32000% THEN 1020
+1010 IF ]%>40000% THEN ; 'DU [R V[RLDSM[STARE'
+1020 ; : ; : ; 
+1030 FOR I=1 TO 2000 : NEXT I
+1040 ; 'VILL DU F\RS\KA EN G]NG TILL(J/N)?' : INPUT O$ : IF O$='N' THEN END ELSE 100
+1050 ; CUR(0,11)]%
+1060 RETURN 
