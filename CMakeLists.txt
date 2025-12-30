@@ -99,7 +99,7 @@ if (DEFINED EMSCRIPTEN)
     set(EM_LINK_FLAGS "--use-port=sdl2 --use-port=sdl2_image:formats=png -gsource-map -pthread ")
 
 	set_target_properties(emu PROPERTIES COMPILE_FLAGS  "${EM_COMPILE_FLAGS}")
-	set_target_properties(emu PROPERTIES LINK_FLAGS   "${EM_LINK_FLAGS} --preload-file ${CMAKE_SOURCE_DIR}/abcdir/@abcdir/ --bind")
+	set_target_properties(emu PROPERTIES LINK_FLAGS   "${EM_LINK_FLAGS} --preload-file ${CMAKE_SOURCE_DIR}/abcdir/@abcdir/ --shell-file ${CMAKE_SOURCE_DIR}/emscripten_template.html --bind")
 	set_target_properties(emu_lib PROPERTIES COMPILE_FLAGS "${EM_COMPILE_FLAGS} -s SIDE_MODULE=1 ")
 	set_target_properties(emu_lib PROPERTIES LINK_FLAGS    "${EM_LINK_FLAGS} -s SIDE_MODULE=1 ")
 else()
