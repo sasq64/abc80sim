@@ -1,3 +1,35 @@
+Version 3.5 changes:
+ - ported to SDL2
+ - Added a sound driver based of info from Mikrodatorns-ABC
+ - add emscripten as a possible build target (webassembly)
+
+Files in abcdir is accessed by load cas: [filename]
+
+Building linux:
+```sh
+mkdir build
+cd build
+cmake ../
+make
+```
+
+Building webassembly requires emscripten (tested with 4.0.22)
+```sh
+mkdir build_emscripten
+cd build_emscripten
+emccmake cmake ../
+make
+
+# test with localhost
+cd ..
+python3 coop-coep-server.py 8080
+
+#navigate to http://localhost:8080/build_emscripten/emu.html
+
+```
+
+---------------------
+
 This version has been substantially modified by H. Peter Anvin
 <hpa@zytor.com> from the original version.  The original README is
 included but may not apply anymore.
@@ -99,7 +131,7 @@ Acknowledgments
       Gave me permission to distribute the PROM-contents.
 
     Kjell Enblom <kjell-e@lysator.liu.se>
-      Lent me his copy of "Avancerad programmering på ABC80"
+      Lent me his copy of "Avancerad programmering pï¿½ ABC80"
 
 
 Revision history
