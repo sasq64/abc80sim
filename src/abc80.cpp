@@ -26,8 +26,12 @@ extern "C"
     bool startup_width40 = false;
 }
 
+#ifdef __EMSCRIPTEN__
+#include "emscripten.h"
+#endif
+
 static int z80_thread(void*);
-static double mhz = 1000.0;
+static double mhz = CLOCKSPEED_UNLIMITED;
 
 static const char version_string[] = VERSION;
 const char* program_name;
@@ -157,6 +161,9 @@ static void load_sysfile(FILE* sysfile)
    "  Alt-m    dump memory as currently seen from the CPU\n"
    "  Alt-u    dump underlying RAM only (even nonexistent)\n"
    "  Alt-f    turn faketype on or off\n"
+   "  Ctrl-Alt-1    Set cpu clockspeed to 3.0 MHz (original speed)\n"
+   "  Ctrl-Alt-2    Set cpu clockspeed to 30 MHz (10x original speed)\n"
+   "  Ctrl-Alt-3    Disable cpu clockspeed throttling\n"
    , program_name);
     // clang-format on
     exit(1);
@@ -536,13 +543,22 @@ int main(int argc, char** argv)
     /*
      * Off we go...
      */
-    cpu_thread = SDL_CreateThread(z80_thread, NULL);
+    cpu_thread = SDL_CreateThread(z80_thread, "cpu_thread", NULL);
+#ifdef __EMSCRIPTEN__
+    emscripten_set_main_loop(event_loop, 60, 0);
+    (void)cpu_thread; // squelsh unused variable
+#else
     event_loop(); /* Handling external events and screen */
+
     z80_quit = true;
     SDL_WaitThread(cpu_thread, NULL);
 
     screen_reset();
+
+    io_destroy();
+    timer_destroy();
     exit(0);
+#endif
 }
 
 int z80_thread(void* data)

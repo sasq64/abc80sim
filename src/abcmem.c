@@ -22,9 +22,9 @@ static void write_rom(uint8_t* p, uint8_t v);
 #define write_screen write_ram
 
 #define PAGE_SHIFT 10
-#define PAGE_SIZE (1U << PAGE_SHIFT)
-#define PAGE_MASK (PAGE_SIZE - 1)
-#define PAGE_COUNT (Z80_ADDRESS_LIMIT / PAGE_SIZE)
+#define PAGE_SIZE_ABC (1U << PAGE_SHIFT)
+#define PAGE_MASK (PAGE_SIZE_ABC - 1)
+#define PAGE_COUNT (Z80_ADDRESS_LIMIT / PAGE_SIZE_ABC)
 
 /* Up to 8 memory maps */
 #define MEM_MAPS 8
@@ -251,7 +251,7 @@ static void map_memory(unsigned int maps, size_t where, size_t size, void* what,
         while (npg--) {
             mp->data = datap;
             mp->write = wfunc;
-            datap += PAGE_SIZE;
+            datap += PAGE_SIZE_ABC;
             mp++;
         }
     }
@@ -396,7 +396,7 @@ void dump_memory(bool ramonly)
         return;
 
     for (i = 0; i < PAGE_COUNT; i++)
-        fwrite(map[i].data, 1, PAGE_SIZE, hf->f);
+        fwrite(map[i].data, 1, PAGE_SIZE_ABC, hf->f);
 
     if (!ferror(hf->f))
         keep_file(hf); /* It's good */
